@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>日報入力</title>
+  <link rel="stylesheet" href="./app.css">
+  <script src="./config.js" defer></script>
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <div class="page-wrap">
+    <div class="app-shell">
+
+      <section id="loginCard" class="card">
+        <h1 class="page-title">日報入力</h1>
+
+        <div class="field">
+          <label for="loginName">氏名</label>
+          <select id="loginName" disabled>
+            <option value="">読み込み中...</option>
+          </select>
+        </div>
+
+        <button id="loginBtn" class="btn btn-primary" type="button" disabled>ログイン</button>
+        <div id="loginMessage" class="message"></div>
+      </section>
+
+      <section id="appCard" class="card hidden">
+        <div class="header-row">
+          <h1 class="page-title">日報入力</h1>
+          <button id="logoutBtn" class="btn btn-ghost btn-sm" type="button">ログアウト</button>
+        </div>
+
+        <div class="tab-row">
+          <button id="tabReportBtn" class="tab-btn active" type="button">日報入力</button>
+          <button id="tabHistoryBtn" class="tab-btn" type="button">日報記録一覧</button>
+          <button id="tabRequestBtn" class="tab-btn" type="button">依頼No.管理</button>
+        </div>
+
+        <section id="reportTab">
+          <div class="summary-stack">
+            <div class="summary-box">
+              <div class="summary-label">日付</div>
+              <input type="date" id="workDate">
+            </div>
+
+            <div class="summary-box">
+              <div class="summary-label">氏名</div>
+              <div id="displayName" class="summary-value">-</div>
+            </div>
+
+            <div class="summary-box">
+              <div class="summary-label">指定日付の合計作業時間</div>
+              <div id="totalHours" class="summary-value">0 h</div>
+            </div>
+          </div>
+
+          <div class="section-title">作業報告</div>
+          <div id="rowsArea" class="rows-area"></div>
+
+          <div class="action-stack">
+            <button id="addRowBtn" class="btn btn-sub" type="button">＋ 項目追加</button>
+          </div>
+
+          <div class="section-title">一日の総括</div>
+          <div class="field">
+            <textarea id="diary" placeholder="今日の作業全体の振り返り・共有事項などを記入"></textarea>
+          </div>
+
+          <div class="action-stack">
+            <button id="submitBtn" class="btn btn-primary" type="button">送信</button>
+          </div>
+
+          <div id="appMessage" class="message"></div>
+        </section>
+
+        <section id="historyTab" class="hidden">
+          <div class="history-mode-row">
+            <button id="historyModeDayBtn" class="tab-btn active" type="button">1日分</button>
+            <button id="historyModeWeekBtn" class="tab-btn" type="button">1週間分</button>
+          </div>
+
+          <div class="summary-box">
+            <div class="summary-label">基準日</div>
+            <input type="date" id="historyBaseDate">
+          </div>
+
+          <div class="inline-note">
+            1週間分は、基準日を含む過去7日分を表示します。
+          </div>
+
+          <div class="action-stack">
+            <button id="historyLoadBtn" class="btn btn-primary" type="button">表示</button>
+          </div>
+
+          <div id="historyMessage" class="message"></div>
+          <div id="historySummary" class="history-summary"></div>
+          <div id="historyList" class="history-list"></div>
+        </section>
+
+        <section id="requestTab" class="hidden">
+          <div class="section-title" style="margin-top:0;">依頼No.追加</div>
+
+          <div class="field">
+            <label for="newRequestNo">依頼No.</label>
+            <input type="text" id="newRequestNo" placeholder="依頼No.を入力">
+          </div>
+
+          <button id="addRequestBtn" class="btn btn-primary" type="button">追加</button>
+          <div id="requestMessage" class="message"></div>
+
+          <div class="section-title">登録済み依頼No.</div>
+          <div id="requestList" class="request-list"></div>
+        </section>
+
+        <div class="spacer-bottom"></div>
+      </section>
+    </div>
+  </div>
+</body>
+</html>
