@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>日報入力</title>
-  <link rel="stylesheet" href="./app.css">
+  <link rel="stylesheet" href="./app.css?v=20260715-reorder3">
   <script src="./config.js" defer></script>
-  <script src="./app.js" defer></script>
+  <script src="./app.js?v=20260715-reorder3" defer></script>
 </head>
 <body>
   <div class="page-wrap">
@@ -24,6 +24,7 @@
 
         <button id="loginBtn" class="btn btn-primary" type="button" disabled>ログイン</button>
         <div id="loginMessage" class="message"></div>
+        <div class="app-version">build 20260715-reorder3</div>
       </section>
 
       <section id="appCard" class="card hidden">
@@ -57,6 +58,7 @@
           </div>
 
           <div class="section-title">作業報告</div>
+          <div class="reorder-guide">各項目は「↑ 上へ」「↓ 下へ」で並べ替えできます。</div>
           <div id="rowsArea" class="rows-area"></div>
 
           <div class="action-stack">
@@ -115,6 +117,7 @@
         </section>
 
         <div class="spacer-bottom"></div>
+        <div class="app-version">build 20260715-reorder3</div>
       </section>
     </div>
   </div>
