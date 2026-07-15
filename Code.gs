@@ -443,6 +443,120 @@ function disableRequestNo(token, requestNo) {
   }
 }
 
+
+function setRequestNoEnabled(token, requestNo, enabled) {
+  const session = getSession_(token);
+  if (!session.ok) return session;
+
+  requestNo = String(requestNo || '').trim();
+  if (!requestNo) {
+    return { ok: false, message: '依頼No.が不正です。' };
+  }
+
+  const targetEnabled = enabled === true || String(enabled).toLowerCase() === 'true';
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(REQUEST_MASTER_SHEET);
+    if (!sheet) {
+      return { ok: false, message: 'RequestMasterシートが見つかりません。' };
+    }
+
+    const values = sheet.getDataRange().getValues();
+    for (let i = 1; i < values.length; i++) {
+      const rowRequestNo = String(values[i][REQUEST_COL_NO - 1] || '').trim();
+      if (rowRequestNo === requestNo) {
+        sheet.getRange(i + 1, REQUEST_COL_ENABLED).setValue(targetEnabled);
+        return {
+          ok: true,
+          message: targetEnabled
+            ? '依頼No.を有効化しました。'
+            : '依頼No.を無効化しました。',
+          items: getRequestMasterItems_(),
+        };
+      }
+    }
+
+    return { ok: false, message: '対象の依頼No.が見つかりません。' };
+  } catch (e) {
+    console.error(e);
+    return {
+      ok: false,
+      message: e.message || '依頼No.の状態変更時にエラーが発生しました。',
+    };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function updateRequestNo(token, oldRequestNo, newRequestNo) {
+  const session = getSession_(token);
+  if (!session.ok) return session;
+
+  oldRequestNo = String(oldRequestNo || '').trim();
+  newRequestNo = String(newRequestNo || '').trim();
+
+  if (!oldRequestNo || !newRequestNo) {
+    return { ok: false, message: '依頼No.が不正です。' };
+  }
+
+  if (oldRequestNo === newRequestNo) {
+    return {
+      ok: true,
+      message: '依頼No.は変更されていません。',
+      items: getRequestMasterItems_(),
+    };
+  }
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(REQUEST_MASTER_SHEET);
+    if (!sheet) {
+      return { ok: false, message: 'RequestMasterシートが見つかりません。' };
+    }
+
+    const values = sheet.getDataRange().getValues();
+    let targetRow = 0;
+
+    for (let i = 1; i < values.length; i++) {
+      const rowRequestNo = String(values[i][REQUEST_COL_NO - 1] || '').trim();
+
+      if (rowRequestNo === newRequestNo) {
+        return { ok: false, message: '変更後の依頼No.は既に登録されています。' };
+      }
+
+      if (rowRequestNo === oldRequestNo) {
+        targetRow = i + 1;
+      }
+    }
+
+    if (!targetRow) {
+      return { ok: false, message: '変更対象の依頼No.が見つかりません。' };
+    }
+
+    sheet.getRange(targetRow, REQUEST_COL_NO).setValue(newRequestNo);
+
+    return {
+      ok: true,
+      message: '依頼No.を変更しました。',
+      items: getRequestMasterItems_(),
+    };
+  } catch (e) {
+    console.error(e);
+    return {
+      ok: false,
+      message: e.message || '依頼No.変更時にエラーが発生しました。',
+    };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 function getHistoryDay(token, workDate) {
   const session = getSession_(token);
   if (!session.ok) return session;
@@ -833,6 +947,7 @@ function buildWeekHistory_(name, baseDate) {
     .sort((a, b) => b.workDate.localeCompare(a.workDate))
     .map((day) => ({
       workDate: formatJapaneseDate_(day.workDate),
+      workDateValue: day.workDate,
       totalHours: day.totalHours,
       reportCount: day.reportCount,
       latestDiary: day.diaries

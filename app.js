@@ -6,6 +6,7 @@ const state = {
   requestMasterItems: [],
   currentTab: 'report',
   historyMode: 'day',
+  selectedRequestNo: '',
 };
 
 const STORAGE_KEY =
@@ -627,8 +628,16 @@ function renderHistoryWeek(data) {
 
   let html = '';
   data.days.forEach((day) => {
+    const historyDate = day.workDateValue || parseHistoryDateValue_(day.workDate);
+
     html += `
-      <div class="history-card">
+      <div
+        class="history-card history-week-card"
+        data-history-date="${escapeHtml(historyDate)}"
+        role="button"
+        tabindex="0"
+        aria-label="${escapeHtml(day.workDate || '')}の1日分を表示"
+      >
         <div class="history-card-header">
           <div class="history-title">${escapeHtml(day.workDate || '-')}</div>
           <div class="history-meta">
@@ -637,11 +646,39 @@ function renderHistoryWeek(data) {
           </div>
         </div>
         <div class="history-diary">${escapeHtml(day.latestDiary || '記載なし')}</div>
+        <div class="history-card-action-note">タップしてこの日の一覧を表示</div>
       </div>
     `;
   });
 
   list.innerHTML = html;
+
+  list.querySelectorAll('[data-history-date]').forEach((card) => {
+    const openDay = () => openHistoryDayFromWeek_(card.dataset.historyDate);
+
+    card.addEventListener('click', openDay);
+    card.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        openDay();
+      }
+    });
+  });
+}
+
+function openHistoryDayFromWeek_(workDate) {
+  if (!workDate) return;
+
+  el('historyBaseDate').value = workDate;
+  switchHistoryMode('day');
+}
+
+function parseHistoryDateValue_(value) {
+  const text = String(value || '').trim();
+  const matched = text.match(/^(\d{4})年(\d{1,2})月(\d{1,2})日$/);
+  if (!matched) return '';
+
+  return `${matched[1]}-${matched[2].padStart(2, '0')}-${matched[3].padStart(2, '0')}`;
 }
 
 async function loadRequestMasterList() {
@@ -667,11 +704,15 @@ async function loadRequestMasterList() {
   }
 }
 
-function applyRequestMasterItems(items) {
+function applyRequestMasterItems(items, preferredRequestNo = '') {
   state.requestMasterItems = items || [];
   state.requestOptions = state.requestMasterItems
     .filter((item) => item.enabled)
     .map((item) => item.requestNo);
+
+  if (preferredRequestNo) {
+    state.selectedRequestNo = preferredRequestNo;
+  }
 
   syncRequestSelectOptions();
   renderRequestMasterList();
@@ -693,37 +734,71 @@ function renderRequestMasterList() {
   const list = el('requestList');
 
   if (!state.requestMasterItems.length) {
+    state.selectedRequestNo = '';
     list.innerHTML = '<div class="empty-box">依頼No.はまだ登録されていません。</div>';
     return;
   }
 
-  let html = '';
+  let selectedItem = state.requestMasterItems.find(
+    (item) => item.requestNo === state.selectedRequestNo
+  );
 
-  state.requestMasterItems.forEach((item, index) => {
-    html += `
-      <div class="request-item">
-        <div class="request-item-main">
-          <div class="request-no-text">${escapeHtml(item.requestNo)}</div>
-          <div class="request-status">${item.enabled ? '有効' : '無効'}</div>
+  if (!selectedItem) {
+    selectedItem = state.requestMasterItems[0];
+    state.selectedRequestNo = selectedItem.requestNo;
+  }
+
+  const optionsHtml = state.requestMasterItems
+    .map((item) => {
+      const selected = item.requestNo === selectedItem.requestNo ? 'selected' : '';
+      const status = item.enabled ? '有効' : '無効';
+      return `<option value="${escapeHtml(item.requestNo)}" ${selected}>${escapeHtml(item.requestNo)}（${status}）</option>`;
+    })
+    .join('');
+
+  list.innerHTML = `
+    <div class="request-manage-box">
+      <div class="field">
+        <label for="requestManageSelect">登録済み依頼No.</label>
+        <select id="requestManageSelect">${optionsHtml}</select>
+      </div>
+
+      <div class="request-selected-panel">
+        <div class="request-status-row">
+          <span class="request-status-label">現在の状態</span>
+          <span class="request-status-value ${selectedItem.enabled ? 'is-enabled' : 'is-disabled'}">
+            ${selectedItem.enabled ? '有効' : '無効'}
+          </span>
         </div>
-        <div class="request-item-actions">
-          ${
-            item.enabled
-              ? `<button type="button" class="mini-btn" data-request-disable-index="${index}">無効化</button>`
-              : ''
-          }
+
+        <div class="field request-edit-field">
+          <label for="requestEditNo">依頼No.を編集</label>
+          <input
+            type="text"
+            id="requestEditNo"
+            value="${escapeHtml(selectedItem.requestNo)}"
+          >
+        </div>
+
+        <div class="request-manage-actions">
+          <button id="requestUpdateBtn" class="mini-btn" type="button">変更を保存</button>
+          <button id="requestToggleBtn" class="mini-btn" type="button">
+            ${selectedItem.enabled ? '無効化' : '有効化'}
+          </button>
         </div>
       </div>
-    `;
+    </div>
+  `;
+
+  el('requestManageSelect').addEventListener('change', (event) => {
+    state.selectedRequestNo = event.target.value;
+    setMessage('requestMessage', '');
+    renderRequestMasterList();
   });
 
-  list.innerHTML = html;
-
-  list.querySelectorAll('[data-request-disable-index]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const index = Number(btn.dataset.requestDisableIndex);
-      disableRequestNoFromApp(index);
-    });
+  el('requestUpdateBtn').addEventListener('click', updateRequestNoFromApp);
+  el('requestToggleBtn').addEventListener('click', () => {
+    setRequestNoEnabledFromApp(selectedItem.requestNo, !selectedItem.enabled);
   });
 }
 
@@ -752,7 +827,7 @@ async function addRequestNoFromApp() {
 
     input.value = '';
     setMessage('requestMessage', res.message || '依頼No.を追加しました。', false);
-    applyRequestMasterItems(res.items || []);
+    applyRequestMasterItems(res.items || [], requestNo);
   } catch (e) {
     console.error(e);
     setButtonLoading('addRequestBtn', false, '追加中...');
@@ -760,34 +835,81 @@ async function addRequestNoFromApp() {
   }
 }
 
-async function disableRequestNoFromApp(index) {
-  if (!state.sessionToken) return;
+async function setRequestNoEnabledFromApp(requestNo, enabled) {
+  if (!state.sessionToken || !requestNo) return;
 
-  const item = state.requestMasterItems[index];
-  if (!item || !item.enabled) return;
-
-  const ok = window.confirm(`「${item.requestNo}」を無効化しますか？`);
+  const actionText = enabled ? '有効化' : '無効化';
+  const ok = window.confirm(`「${requestNo}」を${actionText}しますか？`);
   if (!ok) return;
 
   setMessage('requestMessage', '');
+  setButtonLoading('requestToggleBtn', true, `${actionText}中...`);
 
   try {
-    const res = await apiPost('requestDisable', {
+    const res = await apiPost('requestSetEnabled', {
       token: state.sessionToken,
-      requestNo: item.requestNo,
+      requestNo,
+      enabled,
     });
 
     if (!res.ok) {
       handleSessionErrorIfNeeded_(res, 'requestMessage');
-      setMessage('requestMessage', res.message || '依頼No.の無効化に失敗しました。');
+      setMessage('requestMessage', res.message || `依頼No.の${actionText}に失敗しました。`);
+      renderRequestMasterList();
       return;
     }
 
-    setMessage('requestMessage', res.message || '依頼No.を無効化しました。', false);
-    applyRequestMasterItems(res.items || []);
+    setMessage('requestMessage', res.message || `依頼No.を${actionText}しました。`, false);
+    applyRequestMasterItems(res.items || [], requestNo);
   } catch (e) {
     console.error(e);
     setMessage('requestMessage', buildNetworkErrorMessage_(e));
+    renderRequestMasterList();
+  }
+}
+
+async function updateRequestNoFromApp() {
+  if (!state.sessionToken || !state.selectedRequestNo) return;
+
+  const input = el('requestEditNo');
+  const oldRequestNo = state.selectedRequestNo;
+  const newRequestNo = input ? input.value.trim() : '';
+
+  setMessage('requestMessage', '');
+
+  if (!newRequestNo) {
+    setMessage('requestMessage', '変更後の依頼No.を入力してください。');
+    return;
+  }
+
+  if (newRequestNo === oldRequestNo) {
+    setMessage('requestMessage', '依頼No.は変更されていません。');
+    return;
+  }
+
+  setButtonLoading('requestUpdateBtn', true, '変更中...');
+
+  try {
+    const res = await apiPost('requestUpdate', {
+      token: state.sessionToken,
+      oldRequestNo,
+      newRequestNo,
+    });
+
+    if (!res.ok) {
+      handleSessionErrorIfNeeded_(res, 'requestMessage');
+      setMessage('requestMessage', res.message || '依頼No.の変更に失敗しました。');
+      renderRequestMasterList();
+      return;
+    }
+
+    state.selectedRequestNo = newRequestNo;
+    setMessage('requestMessage', res.message || '依頼No.を変更しました。', false);
+    applyRequestMasterItems(res.items || [], newRequestNo);
+  } catch (e) {
+    console.error(e);
+    setMessage('requestMessage', buildNetworkErrorMessage_(e));
+    renderRequestMasterList();
   }
 }
 

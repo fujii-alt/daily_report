@@ -69,6 +69,16 @@ function doPost(e) {
       case 'requestDisable':
         return jsonOutput_(disableRequestNo(body.token, body.requestNo));
 
+      case 'requestSetEnabled':
+        return jsonOutput_(
+          setRequestNoEnabled(body.token, body.requestNo, body.enabled)
+        );
+
+      case 'requestUpdate':
+        return jsonOutput_(
+          updateRequestNo(body.token, body.oldRequestNo, body.newRequestNo)
+        );
+
       default:
         return jsonOutput_({
           ok: false,

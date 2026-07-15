@@ -422,6 +422,81 @@ textarea:focus {
   cursor: pointer;
 }
 
+.request-manage-box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.request-selected-panel {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: #fbfefb;
+}
+
+.request-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.request-status-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--sub);
+}
+
+.request-status-value {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.request-status-value.is-enabled {
+  background: var(--main-soft);
+  color: var(--success);
+}
+
+.request-status-value.is-disabled {
+  background: #f7eeee;
+  color: var(--danger);
+}
+
+.request-edit-field {
+  margin-bottom: 10px;
+}
+
+.request-manage-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.history-week-card {
+  cursor: pointer;
+}
+
+.history-week-card:hover,
+.history-week-card:focus-visible {
+  border-color: var(--main);
+  box-shadow: 0 0 0 3px rgba(140, 198, 138, 0.12);
+  outline: none;
+}
+
+.history-card-action-note {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--main-deep);
+  text-align: right;
+}
+
 .empty-box,
 .history-empty {
   padding: 14px 12px;
